@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>VRS - My Bookings</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body class="bg-[#f6f6f4] min-h-screen text-gray-800 antialiased py-6 px-4 md:px-8 font-sans">
+  <main class="max-w-4xl mx-auto flex flex-col gap-5">
+    <header class="flex justify-between items-center pt-2 pb-1 border-b border-gray-200">
+      <div>
+        <h1 class="text-2xl md:text-[1.7rem] font-black tracking-tight text-gray-900 uppercase">
+          RESERVATIONS
+        </h1>
+        <p class="text-xs md:text-sm text-gray-500 font-medium mt-0.5">Manage your active and past reservations</p>
+      </div>
+      <div class="flex items-center gap-3 text-xs">
+        <a href="vehicles.html" class="text-gray-600 hover:underline">Vehicles</a>
+        <a href="booking.html" class="text-[#3d6db5] font-semibold underline">My Bookings</a>
+        <a href="bill.html" class="text-gray-600 hover:underline">My Bills</a>
+        <a href="admin.html" id="nav-admin-link" class="hidden text-amber-600 font-semibold hover:underline">Admin</a>
+        <span class="font-medium text-gray-700" id="nav-user-name"></span>
+        <button onclick="logout()" class="text-red-600 hover:underline font-medium">Logout</button>
+      </div>
+    </header>
+
+    <div id="booking-error" class="hidden bg-red-50 text-red-700 text-xs p-3 rounded-lg border border-red-200"></div>
+
+    <section class="bg-white rounded-2xl p-4 shadow-sm border border-gray-200">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead>
+            <tr class="border-b border-gray-200 text-gray-500 font-semibold">
+              <th class="py-2.5 px-3">Reservation ID</th>
+              <th class="py-2.5 px-3">Vehicle</th>
+              <th class="py-2.5 px-3">Start Date</th>
+              <th class="py-2.5 px-3">Period</th>
+              <th class="py-2.5 px-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="bookings-table-body" class="divide-y divide-gray-100">
+            <tr>
+              <td colspan="5" class="py-4 text-center text-gray-500 italic">Loading reservations...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    requireLogin();
+    setupNavbar('booking');
+
+    async function loadBookings() {
+      clearError('booking-error');
+      const tbody = document.getElementById('bookings-table-body');
+      try {
+        const reservations = await apiFetch('/reservations');
+        tbody.innerHTML = '';
+        if (!reservations || reservations.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-500 italic">No reservations found.</td></tr>';
+          return;
+        }
+        reservations.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 transition-colors';
+          tr.innerHTML = `
+            <td class="py-2.5 px-3 font-semibold text-gray-900">${r.reservationId}</td>
+            <td class="py-2.5 px-3">${r.numberplate}</td>
+            <td class="py-2.5 px-3">${r.reservDate}</td>
+            <td class="py-2.5 px-3">${r.reservPeriod} days</td>
+            <td class="py-2.5 px-3 text-right">
+              <button onclick="generateBill('${r.reservationId}')" class="bg-[#3d6db5] hover:bg-[#325a96] text-white text-[11px] font-medium px-2.5 py-1 rounded transition-colors">
+                Generate / View Bill
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        showError('booking-error', err.message);
+      }
+    }
+
+    async function generateBill(reservationId) {
+      clearError('booking-error');
+      try {
+        const bill = await apiFetch('/bills', {
+          method: 'POST',
+          body: JSON.stringify({ reservationId })
+        });
+        alert(`Bill generated! Bill ID: ${bill.billId}`);
+        window.location.href = 'bill.html';
+      } catch (err) {
+        // If bill already exists, redirect to bills list
+        if (err.message.includes('already exists')) {
+          window.location.href = 'bill.html';
+        } else {
+          showError('booking-error', err.message);
+        }
+      }
+    }
+
+    loadBookings();
+  </script>
+</body>
+</html>
+

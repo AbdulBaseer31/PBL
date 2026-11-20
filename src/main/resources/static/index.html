@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>VRS - Login & Register</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body class="bg-[#f6f6f4] min-h-screen text-gray-800 flex items-center justify-center p-4">
+  <div class="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
+    <div class="text-center">
+      <h1 class="text-2xl font-black tracking-tight text-gray-900 uppercase">VEHICLE RENTAL SYSTEM</h1>
+      <p class="text-xs text-gray-500 font-medium mt-1">Sign in or register your account</p>
+    </div>
+
+    <!-- Error container -->
+    <div id="auth-error" class="hidden bg-red-50 text-red-700 text-xs p-3 rounded-lg border border-red-200"></div>
+
+    <!-- Tab Buttons -->
+    <div class="flex border-b border-gray-200 text-sm font-semibold">
+      <button id="tab-login" class="flex-1 py-2 text-center border-b-2 border-[#3d6db5] text-[#3d6db5]" onclick="showTab('login')">Login</button>
+      <button id="tab-register" class="flex-1 py-2 text-center text-gray-500 hover:text-gray-700" onclick="showTab('register')">Register</button>
+    </div>
+
+    <!-- Login Form -->
+    <form id="form-login" class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1" for="login-phone">Contact Number (10 digits)</label>
+        <input class="system-input w-full" id="login-phone" type="text" placeholder="e.g. 9876543210" required/>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1" for="login-password">Password</label>
+        <input class="system-input w-full" id="login-password" type="password" required/>
+      </div>
+      <button type="submit" class="w-full bg-[#3d6db5] hover:bg-[#325a96] text-white text-xs font-medium py-2.5 rounded-lg transition-colors">
+        Sign In
+      </button>
+    </form>
+
+    <!-- Register Form -->
+    <form id="form-register" class="space-y-3 hidden">
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1" for="reg-name">Full Name</label>
+        <input class="system-input w-full" id="reg-name" type="text" placeholder="e.g. Avanish Reddy" required/>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1" for="reg-age">Age</label>
+          <input class="system-input w-full" id="reg-age" type="number" min="18" max="100" placeholder="18-100" required/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1" for="reg-phone">Contact Number</label>
+          <input class="system-input w-full" id="reg-phone" type="text" placeholder="10 digits" required/>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1" for="reg-address">Address</label>
+        <input class="system-input w-full" id="reg-address" type="text" placeholder="City or Full Address"/>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1" for="reg-password">Password</label>
+        <input class="system-input w-full" id="reg-password" type="password" placeholder="At least 6 characters" required/>
+      </div>
+      <button type="submit" class="w-full bg-[#45856b] hover:bg-[#396f59] text-white text-xs font-medium py-2.5 rounded-lg transition-colors">
+        Register Account
+      </button>
+    </form>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    function showTab(tab) {
+      clearError('auth-error');
+      if (tab === 'login') {
+        document.getElementById('form-login').classList.remove('hidden');
+        document.getElementById('form-register').classList.add('hidden');
+        document.getElementById('tab-login').className = 'flex-1 py-2 text-center border-b-2 border-[#3d6db5] text-[#3d6db5]';
+        document.getElementById('tab-register').className = 'flex-1 py-2 text-center text-gray-500 hover:text-gray-700';
+      } else {
+        document.getElementById('form-register').classList.remove('hidden');
+        document.getElementById('form-login').classList.add('hidden');
+        document.getElementById('tab-register').className = 'flex-1 py-2 text-center border-b-2 border-[#45856b] text-[#45856b]';
+        document.getElementById('tab-login').className = 'flex-1 py-2 text-center text-gray-500 hover:text-gray-700';
+      }
+    }
+
+    document.getElementById('form-login').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError('auth-error');
+      try {
+        const body = {
+          contactNumber: document.getElementById('login-phone').value.trim(),
+          password: document.getElementById('login-password').value
+        };
+        const data = await apiFetch('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify(body)
+        });
+        if (data && data.token) {
+          setSession(data.token, { customerId: data.customerId, name: data.name, role: data.role });
+          if (data.role === 'ADMIN') {
+            window.location.href = 'admin.html';
+          } else {
+            window.location.href = 'vehicles.html';
+          }
+        }
+      } catch (err) {
+        showError('auth-error', err.message);
+      }
+    });
+
+    document.getElementById('form-register').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError('auth-error');
+      try {
+        const body = {
+          name: document.getElementById('reg-name').value.trim(),
+          age: parseInt(document.getElementById('reg-age').value),
+          address: document.getElementById('reg-address').value.trim(),
+          contactNumber: document.getElementById('reg-phone').value.trim(),
+          password: document.getElementById('reg-password').value
+        };
+        const res = await apiFetch('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify(body)
+        });
+        alert('Registration successful! Customer ID: ' + res.customerId + '. Please log in.');
+        showTab('login');
+      } catch (err) {
+        showError('auth-error', err.message);
+      }
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>VRS - Invoices & Bills</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body class="bg-[#f6f6f4] min-h-screen text-gray-800 antialiased py-6 px-4 md:px-8 font-sans">
+  <main class="max-w-4xl mx-auto flex flex-col gap-5">
+    <header class="flex justify-between items-center pt-2 pb-1 border-b border-gray-200">
+      <div>
+        <h1 class="text-2xl md:text-[1.7rem] font-black tracking-tight text-gray-900 uppercase">
+          BILLS & INVOICES
+        </h1>
+        <p class="text-xs md:text-sm text-gray-500 font-medium mt-0.5">Summary of charges and payments</p>
+      </div>
+      <div class="flex items-center gap-3 text-xs">
+        <a href="vehicles.html" class="text-gray-600 hover:underline">Vehicles</a>
+        <a href="booking.html" class="text-gray-600 hover:underline">My Bookings</a>
+        <a href="bill.html" class="text-[#3d6db5] font-semibold underline">My Bills</a>
+        <a href="admin.html" id="nav-admin-link" class="hidden text-amber-600 font-semibold hover:underline">Admin</a>
+        <span class="font-medium text-gray-700" id="nav-user-name"></span>
+        <button onclick="logout()" class="text-red-600 hover:underline font-medium">Logout</button>
+      </div>
+    </header>
+
+    <div id="bill-error" class="hidden bg-red-50 text-red-700 text-xs p-3 rounded-lg border border-red-200"></div>
+
+    <section class="bg-white rounded-2xl p-4 shadow-sm border border-gray-200">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead>
+            <tr class="border-b border-gray-200 text-gray-500 font-semibold">
+              <th class="py-2.5 px-3">Bill ID</th>
+              <th class="py-2.5 px-3">Date</th>
+              <th class="py-2.5 px-3">Vehicle</th>
+              <th class="py-2.5 px-3">Daily Rate</th>
+              <th class="py-2.5 px-3">Duration</th>
+              <th class="py-2.5 px-3 text-right">Total Cost</th>
+            </tr>
+          </thead>
+          <tbody id="bills-table-body" class="divide-y divide-gray-100">
+            <tr>
+              <td colspan="6" class="py-4 text-center text-gray-500 italic">Loading bills...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    requireLogin();
+    setupNavbar('bill');
+
+    async function loadBills() {
+      clearError('bill-error');
+      const tbody = document.getElementById('bills-table-body');
+      try {
+        const bills = await apiFetch('/bills');
+        tbody.innerHTML = '';
+        if (!bills || bills.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-gray-500 italic">No bills found.</td></tr>';
+          return;
+        }
+        bills.forEach(b => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 transition-colors';
+          tr.innerHTML = `
+            <td class="py-2.5 px-3 font-semibold text-gray-900">${b.billId}</td>
+            <td class="py-2.5 px-3">${b.billDate}</td>
+            <td class="py-2.5 px-3">${b.brand} (${b.numberplate})</td>
+            <td class="py-2.5 px-3">$${b.basePrice}</td>
+            <td class="py-2.5 px-3">${b.days} days</td>
+            <td class="py-2.5 px-3 text-right font-bold text-gray-900">$${b.totalCost}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        showError('bill-error', err.message);
+      }
+    }
+
+    loadBills();
+  </script>
+</body>
+</html>
+
